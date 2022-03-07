@@ -1,3 +1,6 @@
+mod api;
+
 fn main() {
-    println!("Hello, world!");
+    let services = api::Services::new().unwrap();
+    services.statistics();
 }

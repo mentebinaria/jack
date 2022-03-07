@@ -1,0 +1,20 @@
+[youtube]
+name = "Youtube"
+url = "https://youtube.com/search"
+method = "GET"
+
+[youtube.params]
+q = "banana"
+
+[google]
+name = "Google"
+url = "https://google.com"
+method = "POST"
+
+[google.params]
+auth_token = "xxxXXXxxx"
+
+[twitter]
+name = "Twitter"
+url = "https://twitter.com"
+method = "GET"
