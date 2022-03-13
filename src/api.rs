@@ -1,14 +1,14 @@
 use std::{io, fs};
 
 use serde::{Serialize, Deserialize};
-use toml::{value::Table, Value};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Service {
     name: String,
     url: String,
     method: String,
-    params: Option<Table>,
+    filter: Option<toml::value::Array>,
+    params: Option<toml::value::Table>,
 }
 
 pub struct Services(Vec<Service>);
@@ -21,7 +21,8 @@ impl Service {
             "GET" => {
                 if let Some(params) = self.params.as_ref() {
                     url.push('?');
-                    for (key, value) in params {            
+                    for (key, value) in params {
+                        let value = value.as_str().unwrap();            
                         url += &format!("{key}={value}&");
                     }
                 }
@@ -42,18 +43,24 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("Querying {url} ...");
+        // println!("Querying {url} ...");
+        let json: serde_json::Value = serde_json::from_str(&fs::read_to_string("out.json").unwrap()).unwrap();
+        if let Some(filter) = &self.filter {
+            filter.iter().for_each(|f| {
+                println!("{f} = {result}", result = json.pointer(f.as_str().unwrap()).unwrap());
+            });
+        }
     }
 }
 
 impl Services {
     pub fn new() -> Result<Self, io::Error> {
-        let parsed: Value = toml::from_str(&fs::read_to_string("Config.toml")?).unwrap();
+        let parsed: toml::Value = toml::from_str(&fs::read_to_string("Config.toml")?).unwrap();
         let mut services = vec![];
 
         for (_, values) in parsed.as_table().unwrap() {
             let service: Service = toml::from_str(&toml::to_string(values).unwrap()).unwrap();
-            println!("Creating {name} ...", name = service.name);
+            // println!("Creating {name} ...", name = service.name);
             services.push(service);
         }
 
