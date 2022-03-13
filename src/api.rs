@@ -43,8 +43,16 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        // println!("Querying {url} ...");
-        let json: serde_json::Value = serde_json::from_str(&fs::read_to_string("out.json").unwrap()).unwrap();
+        println!("Querying {url}");
+
+        let content = match self.method.as_ref() {
+            "GET" => {
+                ureq::get(&url).call().unwrap().into_string().unwrap()
+            },
+            _ => panic!("No support for {:?} requests", self.method),
+        };
+
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
         if let Some(filter) = &self.filter {
             filter.iter().for_each(|f| {
                 println!("{f} = {result}", result = json.pointer(f.as_str().unwrap()).unwrap());
