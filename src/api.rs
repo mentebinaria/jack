@@ -47,7 +47,7 @@ impl Service {
 
         let content = match self.method.as_ref() {
             "GET" => {
-                ureq::get(&url).call().unwrap().into_string().unwrap()
+                smolhttp::get(&url).unwrap().text()
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
