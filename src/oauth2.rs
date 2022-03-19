@@ -15,11 +15,13 @@ fn cache_token(token: &str) {
     fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
 }
 
+// TODO: Add a `authenticate` table entry on the .toml file
 pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
     if let Ok(token) = fs::read_to_string(".oauth_tokens") {
         return token;
     }
-
+    
+    // TODO: Add a proper way of parsing the file
     let parsed: serde_json::Value = serde_json::from_str(&fs::read_to_string(client_secrets).unwrap()).unwrap();
     let client_id = parsed["installed"]["client_id"].as_str().unwrap().to_string();
     let client_secret = parsed["installed"]["client_secret"].as_str().unwrap().to_string();
