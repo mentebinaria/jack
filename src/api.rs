@@ -7,6 +7,7 @@ pub struct Service {
     name: String,
     url: String,
     method: String,
+    oauth: Option<String>,
     filter: Option<toml::value::Array>,
     params: Option<toml::value::Table>,
 }
@@ -44,10 +45,18 @@ impl Service {
     pub fn execute(&self) {
         let url = self.generate_url();
         println!("Querying {url}");
+        let token = self.authenticate();
 
         let content = match self.method.as_ref() {
             "GET" => {
-                smolhttp::get(&url).unwrap().text()
+                if let Some(token) = token {
+                    ureq::get(&url)
+                        .set("Authorization", &format!("Bearer {token}"))
+                        .set("Accept", "application/json")
+                        .call().unwrap().into_string().unwrap()
+                } else {
+                    ureq::get(&url).call().unwrap().into_string().unwrap()
+                }
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
@@ -57,6 +66,15 @@ impl Service {
             filter.iter().for_each(|f| {
                 println!("{f} = {result}", result = json.pointer(f.as_str().unwrap()).unwrap());
             });
+        }
+    }
+
+    fn authenticate(&self) -> Option<String> {
+        if let Some(oauth) = self.oauth.as_ref() {
+            println!("Authenticating with oauth ...");
+            Some(super::oauth2::authenticate(oauth))
+        } else {
+            None
         }
     }
 }
