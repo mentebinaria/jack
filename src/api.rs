@@ -50,17 +50,20 @@ impl Service {
         let content = match self.method.as_ref() {
             "GET" => {
                 if let Some(token) = token {
-                    ureq::get(&url)
-                        .set("Authorization", &format!("Bearer {token}"))
-                        .set("Accept", "application/json")
-                        .call().unwrap().into_string().unwrap()
+                    smolhttp::Client::new(&url)
+                        .unwrap()
+                        .get()
+                        .headers(vec![("Authorization".to_owned(), format!("Bearer {token}"))])
+                        .send()
+                        .unwrap()
+                        .text()
                 } else {
-                    ureq::get(&url).call().unwrap().into_string().unwrap()
+                    smolhttp::get(&url).unwrap().text()
                 }
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
-
+        
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
         if let Some(filter) = &self.filter {
             filter.iter().for_each(|f| {
