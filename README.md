@@ -23,7 +23,7 @@ params = "value" # `?params=value` on GET requests
 [some_api.oauth] # Optional
 auth_uri = "https://some_api/oauth/auth"
 token_uri = "https://some_api/oauth/token"
-client_id = "Client ID"
+client_id = "Client ID" # Same reason why as the `client_secret`
 client_secret = "Client SECRET" # Due the lack of a intermediate(private) server (maybe in the future...) containing the client_secret
 ```
 
