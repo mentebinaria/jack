@@ -15,16 +15,13 @@ fn cache_token(token: &str) {
     std::fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
 }
 
-// TODO: Add a `authenticate` table entry on the .toml file
 pub fn authenticate(oauth: &toml::value::Table) -> String {
     if let Ok(token) = std::fs::read_to_string(".oauth_tokens") {
         return token;
     }
     
-    // TODO: Add a proper way of parsing the file
-    // let parsed: serde_json::Value = serde_json::from_str(&fs::read_to_string(client_secrets).unwrap()).unwrap();
-    // let client_id = parsed["installed"]["client_id"].as_str().unwrap().to_string();
-    let client_secret = oauth["client_secret"].as_str().unwrap().to_string();
+    let client_secret = 
+        oauth.get("client_secret").map(|client_id| ClientSecret::new(client_id.as_str().unwrap().to_owned()));
     let client_id = oauth["client_id"].as_str().unwrap().to_string();
     let auth_uri = oauth["auth_uri"].as_str().unwrap().to_string();
     let token_uri = oauth["token_uri"].as_str().unwrap().to_string();
@@ -32,7 +29,7 @@ pub fn authenticate(oauth: &toml::value::Table) -> String {
     // Set up the config for the Google OAuth2 process.
     let client = BasicClient::new(
         ClientId::new(client_id),
-            Some(ClientSecret::new(client_secret)),
+        client_secret,
         // Some(ClientSecret::new(client_secret)),
         AuthUrl::new(auth_uri).unwrap(),
         Some(TokenUrl::new(token_uri).unwrap()),

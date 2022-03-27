@@ -74,11 +74,7 @@ impl Service {
     }
 
     fn authenticate(&self) -> Option<String> {
-        if let Some(oauth) = self.oauth.as_ref() {
-            Some(super::oauth2::authenticate(oauth))
-        } else {
-            None
-        }
+        self.oauth.as_ref().map(super::oauth2::authenticate)
     }
 }
 
