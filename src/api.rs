@@ -8,7 +8,7 @@ pub struct Service {
     url: String,
     method: String,
     oauth: Option<String>,
-    filter: Option<toml::value::Array>,
+    filter: Option<toml::value::Table>,
     params: Option<toml::value::Table>,
 }
 
@@ -59,6 +59,7 @@ impl Service {
                         .text()
                 } else {
                     smolhttp::get(&url).unwrap().text()
+                    // std::fs::read_to_string("out2.json").unwrap()
                 }
             },
             _ => panic!("No support for {:?} requests", self.method),
@@ -66,8 +67,8 @@ impl Service {
         
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
         if let Some(filter) = &self.filter {
-            filter.iter().for_each(|f| {
-                println!("{f} = {result}", result = json.pointer(f.as_str().unwrap()).unwrap());
+            filter.iter().for_each(|(name, value)| {
+                println!("{name} = {}", json.pointer(value.as_str().unwrap()).unwrap());
             });
         }
     }
@@ -89,7 +90,6 @@ impl Services {
 
         for (_, values) in parsed.as_table().unwrap() {
             let service: Service = toml::from_str(&toml::to_string(values).unwrap()).unwrap();
-            // println!("Creating {name} ...", name = service.name);
             services.push(service);
         }
 
