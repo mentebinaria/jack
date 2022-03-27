@@ -7,7 +7,7 @@ pub struct Service {
     name: String,
     url: String,
     method: String,
-    oauth: Option<String>,
+    oauth: Option<toml::value::Table>,
     filter: Option<toml::value::Table>,
     params: Option<toml::value::Table>,
 }
@@ -44,7 +44,7 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("Querying {url}");
+        println!("{}'s result:", self.name);
         let token = self.authenticate();
 
         let content = match self.method.as_ref() {
@@ -59,7 +59,6 @@ impl Service {
                         .text()
                 } else {
                     smolhttp::get(&url).unwrap().text()
-                    // std::fs::read_to_string("out2.json").unwrap()
                 }
             },
             _ => panic!("No support for {:?} requests", self.method),
@@ -71,11 +70,11 @@ impl Service {
                 println!("{name} = {}", json.pointer(value.as_str().unwrap()).unwrap());
             });
         }
+        println!()
     }
 
     fn authenticate(&self) -> Option<String> {
         if let Some(oauth) = self.oauth.as_ref() {
-            println!("Authenticating with oauth ...");
             Some(super::oauth2::authenticate(oauth))
         } else {
             None

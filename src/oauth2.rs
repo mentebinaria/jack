@@ -1,37 +1,39 @@
 // https://github.com/ramosbugs/oauth2-rs/blob/main/examples/google.rs
 
-use oauth2::{basic::BasicClient, TokenResponse};
+use oauth2::{basic::BasicClient, TokenResponse, ClientSecret};
 // Alternatively, this can be oauth2::curl::http_client or a custom.
 use oauth2::reqwest::http_client;
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
+    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
 };
-use std::{io::{BufRead, BufReader, Write}, fs, path::Path};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 use oauth2::url::Url;
 
 #[inline(always)]
 fn cache_token(token: &str) {
-    fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
+    std::fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
 }
 
 // TODO: Add a `authenticate` table entry on the .toml file
-pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
-    if let Ok(token) = fs::read_to_string(".oauth_tokens") {
+pub fn authenticate(oauth: &toml::value::Table) -> String {
+    if let Ok(token) = std::fs::read_to_string(".oauth_tokens") {
         return token;
     }
     
     // TODO: Add a proper way of parsing the file
-    let parsed: serde_json::Value = serde_json::from_str(&fs::read_to_string(client_secrets).unwrap()).unwrap();
-    let client_id = parsed["installed"]["client_id"].as_str().unwrap().to_string();
-    let client_secret = parsed["installed"]["client_secret"].as_str().unwrap().to_string();
-    let auth_uri = parsed["installed"]["auth_uri"].as_str().unwrap().to_string();
-    let token_uri = parsed["installed"]["token_uri"].as_str().unwrap().to_string();
+    // let parsed: serde_json::Value = serde_json::from_str(&fs::read_to_string(client_secrets).unwrap()).unwrap();
+    // let client_id = parsed["installed"]["client_id"].as_str().unwrap().to_string();
+    let client_secret = oauth["client_secret"].as_str().unwrap().to_string();
+    let client_id = oauth["client_id"].as_str().unwrap().to_string();
+    let auth_uri = oauth["auth_uri"].as_str().unwrap().to_string();
+    let token_uri = oauth["token_uri"].as_str().unwrap().to_string();
 
     // Set up the config for the Google OAuth2 process.
     let client = BasicClient::new(
         ClientId::new(client_id),
-        Some(ClientSecret::new(client_secret)),
+            Some(ClientSecret::new(client_secret)),
+        // Some(ClientSecret::new(client_secret)),
         AuthUrl::new(auth_uri).unwrap(),
         Some(TokenUrl::new(token_uri).unwrap()),
     )
@@ -46,7 +48,7 @@ pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
     let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Generate the authorization URL to which we'll redirect the user.
-    let (authorize_url, csrf_state) = client
+    let (authorize_url, _) = client
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the "calendar" features and the user's profile.
         .add_scope(Scope::new(
@@ -67,7 +69,6 @@ pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
     for stream in listener.incoming() {
         if let Ok(mut stream) = stream {
             let code;
-            let state;
             {
                 let mut reader = BufReader::new(&stream);
 
@@ -88,16 +89,13 @@ pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
                 let (_, value) = code_pair;
                 code = AuthorizationCode::new(value.into_owned());
 
-                let state_pair = url
+                url
                     .query_pairs()
                     .find(|pair| {
                         let &(ref key, _) = pair;
                         key == "state"
                     })
                     .unwrap();
-
-                let (_, value) = state_pair;
-                state = CsrfToken::new(value.into_owned());
             }
 
             let message = "Go back to your terminal :)";
@@ -108,23 +106,11 @@ pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
             );
             stream.write_all(response.as_bytes()).unwrap();
 
-            println!("Google returned the following code:\n{}\n", code.secret());
-            println!(
-                "Google returned the following state:\n{} (expected `{}`)\n",
-                state.secret(),
-                csrf_state.secret()
-            );
-
             // Exchange the code with a token.
             let token_response = client
                 .exchange_code(code)
                 .set_pkce_verifier(pkce_code_verifier)
                 .request(http_client).unwrap();
-
-            println!(
-                "Google returned the following token:\n{:?}\n",
-                token_response
-            );
 
             let token = token_response.access_token().secret().to_string();
             cache_token(&token);
@@ -133,5 +119,5 @@ pub fn authenticate<P: AsRef<Path>>(client_secrets: &P) -> String {
             // The server will terminate itself after revoking the token.
         }
     }
-    String::new()
+    panic!("Something failed")
 }
