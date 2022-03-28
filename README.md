@@ -1,9 +1,9 @@
-# JAC (Json API Client)
-JAC is a generic json API client.
+# JACK (Json API Client Konsumer)
+JACK is a generic json API client.
 It'll make the desire custom requests based on the `Config.toml` configuration file.
 
 ## Config.toml
-This is the JAC's configuration file, here you'll discribe what API's JAC will query.
+This is the JACK's configuration file, here you'll discribe what API's JACK will query.
 
 * Example:
 ```toml
