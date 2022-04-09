@@ -1,11 +1,19 @@
-# JACK (Json API Client Konsumer)
-JACK is a generic json API client.
-It'll make the desire custom requests based on the `Config.toml` configuration file.
+# JACK (JSON API Client Konsumer)
 
-## Config.toml
-This is the JACK's configuration file, here you'll discribe what API's JACK will query.
+JACK is a generic JSON API client. It is useful to interact with APIs from multiple services such as Google and Twitter. All service along with their parameters are configured in `config.toml` file. For example, you can configure JACK to collect statistics from vairous social networks and Google Analytics, all from a single company/instituition.
 
-* Example:
+## Compiling
+
+JACK is written in Rust, so you need to install it first before compiling.
+
+    git clone https://github.com/mentebinaria/jack/
+    cd jack
+    cargo build
+    
+## Configuring
+
+Before running JACK, you have to configure your `config.toml` file. Here's how it works:
+
 ```toml
 [some_api]
 name = "Some API" # The name of the application
@@ -27,12 +35,11 @@ client_id = "Client ID" # Same reason why as the `client_secret`
 client_secret = "Client SECRET" # Due the lack of a intermediate(private) server (maybe in the future...) containing the client_secret
 ```
 
-**NOTE**: You can also have multiple services in a single file
+## Running
 
-## Information display
+After you are finished with the configuration, you should be ready to run JACK as easy as:
 
-* Example
-```
-Some API's result:
-filter_name = "some_value"
-```
+    ./target/debug/jack
+    
+An example output:
+
