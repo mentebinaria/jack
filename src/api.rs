@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Service {
-    name: String,
+    service_name: String,
     url: String,
     method: String,
     oauth: Option<toml::value::Table>,
@@ -35,7 +35,7 @@ impl Service {
                 url
             },
             "POST" => {
-                println!("Can't use POST request for {:?} target", self.name);
+                println!("Can't use POST request for {:?} target", self.service_name);
                 String::new()
             },
             _ => String::new()
@@ -44,7 +44,7 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("{}'s result:", self.name);
+        println!("service_name = {}", self.service_name);
         let token = self.authenticate();
 
         let content = match self.method.as_ref() {
@@ -79,8 +79,8 @@ impl Service {
 }
 
 impl Services {
-    pub fn new() -> Result<Self, io::Error> {
-        let parsed: toml::Value = toml::from_str(&fs::read_to_string("Config.toml")?).unwrap();
+    pub fn new<P: AsRef<std::path::Path>>(p: P) -> Result<Self, io::Error> {
+        let parsed: toml::Value = toml::from_str(&fs::read_to_string(p)?).unwrap();
         let mut services = vec![];
 
         for (_, values) in parsed.as_table().unwrap() {
