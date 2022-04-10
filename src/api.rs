@@ -18,11 +18,11 @@ struct Output {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum OutputFormats {
+pub enum OutputFormat {
     Json,
 }
 
-impl FromStr for OutputFormats {
+impl FromStr for OutputFormat {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -40,6 +40,37 @@ impl Output {
         Self {
             service_name,
             filters: HashMap::new(),
+        }
+    }
+
+    fn display<P: AsRef<std::path::Path>>(&self, format: Option<OutputFormat>, dest: Option<P>) {
+        if let Some(format) = format {
+            
+            match format {
+                OutputFormat::Json => {
+                    let content = serde_json::to_string(&self).unwrap();
+
+                    if let Some(dest) = dest {
+                        let dest = dest.as_ref();
+                        if !dest.exists() {
+                            fs::create_dir(dest).unwrap();
+                        }
+
+                        let file_name = dest.join(self.service_name.clone() + ".json");
+                        let mut file = fs::File::create(file_name).unwrap();
+                        file.write_all(content.as_bytes()).unwrap(); 
+                    }
+
+                    println!("{content}")
+
+                },
+            }
+        } else {
+            println!("service_name = {:?}", self.service_name);
+            self.filters.iter().for_each(|(k, v)| {
+                println!("{k} = {v}");
+            });
+            println!();
         }
     }
 }
@@ -72,7 +103,7 @@ impl Service {
         }
     }
 
-    pub fn execute(self, format: Option<OutputFormats>) {
+    fn execute(self) -> Output {
         let url = self.generate_url();
         let token = self.authenticate();
 
@@ -108,24 +139,8 @@ impl Service {
                 output.filters.insert(k.to_string(), v.to_string());
             });
         }
-
-        if let Some(format) = format {
-            let file_name = output.service_name.clone() + ".json";
-            let mut file = fs::File::create(file_name).unwrap();
-
-            match format {
-                OutputFormats::Json => {
-                    let content = serde_json::to_string(&output).unwrap();
-                    file.write_all(content.as_bytes()).unwrap();
-                },
-            }
-        }
         
-        println!("service_name = {:?}", output.service_name);
-        output.filters.iter().for_each(|(k, v)| {
-            println!("{k} = {v}");
-        });
-        println!();
+        output
     }
 
     fn authenticate(&self) -> Option<String> {
@@ -146,9 +161,9 @@ impl Services {
         Ok(Self(services))
     }
 
-    pub fn statistics(self, format: Option<OutputFormats>) {
-        for service in self.0 {
-            service.execute(format);
-        }
+    pub fn statistics<P: AsRef<std::path::Path>>(self, format: Option<OutputFormat>, dest: Option<&P>) {
+        self.0.into_iter().for_each(|service| {
+            service.execute().display(format, dest)
+        });
     }
 }
