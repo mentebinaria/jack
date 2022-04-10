@@ -39,7 +39,7 @@ Before running JACK, you have to configure your `config.toml` file. Here's how i
 
 ```toml
 [some_api]
-name = "Some API" # The name of the application
+service_name = "Some API" # The name of the application
 url = "http://someapi.xyz" # The url that it'll query
 method = "GET" # The method to use (only GET for now)
 
@@ -64,7 +64,7 @@ Let's say you want some information about a certain YouTube channel. Start with 
 
 ```toml
 [mychannel]
-name = "Great YouTube Channel - YouTube Example"
+service_name = "Great YouTube Channel - YouTube Example"
 url = "https://www.googleapis.com/youtube/v3/channels/"
 method = "GET"
 ```
@@ -91,7 +91,7 @@ maxResults = "50"
 Done. When you run JACK with the above configuration, you should see the following output:
 
 ```
-name = "Great YouTube Channel - YouTube Example"
+service_name = "Great YouTube Channel - YouTube Example"
 contentDetails = {"relatedPlaylists":{"likes":"","uploads":"UUuQ8zW9VmVyml7KytSqJDzg"}}
 title = "Papo Binário"
 totalViews = "2083346"
@@ -103,7 +103,7 @@ For advanced metrics on YouTube, they offer separate service called YouTube Anal
 
 ```toml
 [mychannel_analytics]
-name = "My Great Channel - YouTube Analytics Example"
+service_name = "My Great Channel - YouTube Analytics Example"
 url = "https://youtubeanalytics.googleapis.com/v2/reports"
 method = "GET"
 
@@ -130,7 +130,7 @@ Before running JACK with the above configuration, you need to provide a `client_
 JACK's output would be like the following:
 
 ```
-name = "My Great Channel - YouTube Analytics Example"
+service_name = "My Great Channel - YouTube Analytics Example"
 estimatedMinutesWatched = 162626
 likes = 2964
 subscribersGained = 646
