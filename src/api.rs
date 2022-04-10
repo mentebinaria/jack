@@ -119,13 +119,13 @@ impl Service {
                     file.write_all(content.as_bytes()).unwrap();
                 },
             }
-        } else {
-            println!("service_name = {:?}", output.service_name);
-            output.filters.iter().for_each(|(k, v)| {
-                println!("{k} = {v}");
-            });
-            println!();
         }
+        
+        println!("service_name = {:?}", output.service_name);
+        output.filters.iter().for_each(|(k, v)| {
+            println!("{k} = {v}");
+        });
+        println!();
     }
 
     fn authenticate(&self) -> Option<String> {
