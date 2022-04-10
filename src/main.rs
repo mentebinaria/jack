@@ -5,6 +5,7 @@ mod oauth2;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 enum Argument {
+    Help,
     Config,
     Format,
     Dest,
@@ -15,6 +16,7 @@ impl FromStr for Argument {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_lowercase().as_ref() {
+            "--help"   | "-h" => Ok(Argument::Help),
             "--config" | "-c" => Ok(Argument::Config),
             "--format" | "-f" => Ok(Argument::Format),
             "--dest" => Ok(Argument::Dest),
@@ -34,6 +36,18 @@ fn main() {
             let argument = Argument::from_str(&arg).unwrap();
             opts.insert(argument, args.next());
         }
+    }
+
+    if opts.get(&Argument::Help).is_some() || opts.is_empty() {
+        println!("JACK v0.1.0");
+        println!(
+    "Help menu:
+    --help   | -h - Show this message
+    --config | -c - Specifies a config file to use (default `./config.toml`)
+    --format | -f - Specifies the output format
+    --dest - Specifies the destionation path to save the results"
+        );
+        std::process::exit(1);
     }
 
     let config_file = opts.get(&Argument::Config)
