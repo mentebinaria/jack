@@ -44,7 +44,7 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("service_name = {}", self.service_name);
+        println!("service_name = {:?}", self.service_name);
         let token = self.authenticate();
 
         let content = match self.method.as_ref() {

@@ -9,5 +9,6 @@ edition = "2021"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 smolhttp = "1.1.0"
+oauth2 = { version = "4.1.0" }
 toml = "0.5"
-oauth2 = { version = "4.1.0", features = ["ureq"] }
+open = "1"

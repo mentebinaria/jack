@@ -55,9 +55,14 @@ pub fn authenticate(oauth: &toml::value::Table) -> String {
         .url();
 
     println!(
-        "Open this URL in your browser:\n{}\n",
+        "If it didn't opened, open manually :\n{}\n",
         authorize_url
     );
+    open::that(authorize_url.to_string()).map_err(|err| {
+        println!(
+            "ERROR: {err}\nCould not open url in your browser, try open manually",
+        );
+    }).unwrap();
     
     // A very naive implementation of the redirect server.
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
