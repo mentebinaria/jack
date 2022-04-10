@@ -44,7 +44,6 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("service_name = {:?}", self.service_name);
         let token = self.authenticate();
 
         let content = match self.method.as_ref() {
@@ -65,6 +64,7 @@ impl Service {
         };
         
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+        println!("service_name = {:?}", self.service_name);
         if let Some(filter) = &self.filter {
             filter.iter().for_each(|(name, value)| {
                 println!("{name} = {}", json.pointer(value.as_str().unwrap()).unwrap());
