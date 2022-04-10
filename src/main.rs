@@ -39,13 +39,14 @@ fn main() {
     }
 
     if opts.get(&Argument::Help).is_some() || opts.is_empty() {
-        println!("JACK v0.1.0");
         println!(
-    "Help menu:
-    --help   | -h - Show this message
-    --config | -c - Specifies a config file to use (default `./config.toml`)
-    --format | -f - Specifies the output format
-    --dest - Specifies the destionation path to save the results"
+    "JACK v0.1.0, JSON API Client Konsumer
+    Usage: jack [-c FILE] [-f json] [--dest PATH]
+
+    -h,  --help           Show this message
+    -c,  --config FILE    Configuration file to use (default: ./config.toml)
+    -f,  --format json    Change output format (JSON only for now)
+     --dest PATH      Save results to the specified directory"
         );
         std::process::exit(1);
     }
