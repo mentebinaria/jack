@@ -43,14 +43,15 @@ impl Service {
         }
     }
 
-    pub fn execute(&self) {
+    pub fn execute(self) {
         let url = self.generate_url();
-        let mut headers = vec![];
         let mut client = smolhttp::Client::new(&url).unwrap();
+        let mut headers = vec![];
         let token = self.authenticate();
+
         println!("service_name = {:?}", self.service_name);
 
-        match (self.headers.clone(), token) {
+        match (self.headers, token) {
             (Some(h),  _) => {
                 h.into_iter().for_each(|(k, v)| {
                     headers.push((k, v.as_str().unwrap().to_owned()))
@@ -79,7 +80,7 @@ impl Service {
         } else {
             println!("{}", json)
         }
-        println!()
+        println!();
     }
 
     fn authenticate(&self) -> Option<String> {
@@ -100,8 +101,8 @@ impl Services {
         Ok(Self(services))
     }
 
-    pub fn statistics(&self) {
-        for service in self.0.iter() {
+    pub fn statistics(self) {
+        for service in self.0 {
             service.execute();
         }
     }
