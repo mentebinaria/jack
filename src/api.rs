@@ -10,6 +10,7 @@ pub struct Service {
     oauth: Option<toml::value::Table>,
     filter: Option<toml::value::Table>,
     params: Option<toml::value::Table>,
+    headers: Option<toml::value::Table>,
 }
 
 pub struct Services(Vec<Service>);
@@ -44,26 +45,32 @@ impl Service {
 
     pub fn execute(&self) {
         let url = self.generate_url();
-        println!("service_name = {:?}", self.service_name);
+        let mut headers = vec![];
+        let mut client = smolhttp::Client::new(&url).unwrap();
         let token = self.authenticate();
+        println!("service_name = {:?}", self.service_name);
+
+        match (self.headers.clone(), token) {
+            (Some(h),  _) => {
+                h.into_iter().for_each(|(k, v)| {
+                    headers.push((k, v.as_str().unwrap().to_owned()))
+                });
+            },
+            (_, Some(token)) => {
+                headers.push(("Authorization".to_owned(), format!("Bearer {token}")));
+            }
+            _ => ()
+        }
+
+        client.headers(headers);
 
         let content = match self.method.as_ref() {
             "GET" => {
-                if let Some(token) = token {
-                    smolhttp::Client::new(&url)
-                        .unwrap()
-                        .get()
-                        .headers(vec![("Authorization".to_owned(), format!("Bearer {token}"))])
-                        .send()
-                        .unwrap()
-                        .text()
-                } else {
-                    smolhttp::get(&url).unwrap().text()
-                }
+                client.get().send().unwrap().text()
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
-        
+
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
         if let Some(filter) = &self.filter {
             filter.iter().for_each(|(name, value)| {
