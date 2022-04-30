@@ -67,7 +67,10 @@ impl Service {
 
         let content = match self.method.as_ref() {
             "GET" => {
-                client.get().send().unwrap().text()
+                client.get().send().unwrap_or_else(|err| {
+                    eprintln!("Could not complete the request, try delete the `.oauth_tokens` file an retry\nError: {err}");
+                    std::process::exit(1);
+                }).text()
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
