@@ -32,7 +32,7 @@ fn main() {
     let mut opts: HashMap<Argument, Option<String>> = HashMap::new();
 
     while let Some(arg) = args.next() {
-        if arg.starts_with("--") {
+        if arg.starts_with('-') {
             let argument = Argument::from_str(&arg).unwrap();
             opts.insert(argument, args.next());
         }
@@ -48,7 +48,7 @@ fn main() {
     -f,  --format json    Change output format (JSON only for now)
      --dest PATH      Save results to the specified directory"
         );
-        std::process::exit(1);
+        std::process::exit(0);
     }
 
     let config_file = opts.get(&Argument::Config)

@@ -9,6 +9,7 @@ pub struct Service {
     oauth: Option<toml::value::Table>,
     filter: Option<toml::value::Table>,
     params: Option<toml::value::Table>,
+    headers: Option<toml::value::Table>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -105,25 +106,36 @@ impl Service {
 
     fn execute(self) -> Output {
         let url = self.generate_url();
+        let mut client = smolhttp::Client::new(&url).unwrap();
+        let mut headers = vec![];
         let token = self.authenticate();
+
+        println!("service_name = {:?}", self.service_name);
+
+        match (self.headers, token) {
+            (Some(h),  _) => {
+                h.into_iter().for_each(|(k, v)| {
+                    headers.push((k, v.as_str().unwrap().to_owned()))
+                });
+            },
+            (_, Some(token)) => {
+                headers.push(("Authorization".to_owned(), format!("Bearer {token}")));
+            }
+            _ => ()
+        }
+
+        client.headers(headers);
 
         let content = match self.method.as_ref() {
             "GET" => {
-                if let Some(token) = token {
-                    smolhttp::Client::new(&url)
-                        .unwrap()
-                        .get()
-                        .headers(vec![("Authorization".to_owned(), format!("Bearer {token}"))])
-                        .send()
-                        .unwrap()
-                        .text()
-                } else {
-                    smolhttp::get(&url).unwrap().text()
-                }
+                client.get().send().unwrap_or_else(|err| {
+                    eprintln!("Could not complete the request, try delete the `.oauth_tokens` file an retry\nError: {err}");
+                    std::process::exit(1);
+                }).text()
             },
             _ => panic!("No support for {:?} requests", self.method),
         };
-        
+
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
         let mut output = Output::new(self.service_name.clone());
 
