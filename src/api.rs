@@ -69,6 +69,8 @@ impl Service {
             filter.iter().for_each(|(name, value)| {
                 println!("{name} = {}", json.pointer(value.as_str().unwrap()).unwrap());
             });
+        } else {
+            println!("{}", json)
         }
         println!()
     }
