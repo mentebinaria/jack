@@ -118,16 +118,16 @@ impl Service {
         let mut output = Output::new(self.service_name.clone(), output_format, dest);
 
         if let Some(filter) = self.filter {
-            filter.into_iter().for_each(|(name, value)| {
+            for (name, value) in filter {
                 output.filters.insert(name.clone(), json.pointer(value.as_str().unwrap())
                 .unwrap_or_else(|| {
                     panic!("({name:?}, ({value:?})) trigged an error");
                 }).to_string());
-            });
+            }
         } else {
-            json.as_object().unwrap().iter().for_each(|(k, v)| {
+            for (k, v) in json.as_object().unwrap() {
                 output.filters.insert(k.to_string(), v.to_string());
-            });
+            }
         }
         
         output
@@ -152,9 +152,9 @@ impl Services {
     }
 
     pub fn statistics(self, format: OutputFormat, dest: Option<PathBuf>) {
-        self.0.into_iter().for_each(|service| {
+        for service in self.0.into_iter() {
             println!("{}", service.execute(format, dest.as_ref()));
-        });
+        }
     }
 }
 
@@ -191,9 +191,9 @@ impl std::fmt::Display for Output {
             },
             OutputFormat::Pretty => {
                 println!("service_name = {:?}", self.service_name);
-                self.filters.iter().for_each(|(k, v)| {
+                for (k, v) in self.filters.iter() {
                     println!("{k} = {v}");
-                });
+                }
                 println!();
             }
         }
