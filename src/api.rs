@@ -41,7 +41,6 @@ pub enum OutputFormat {
     Pretty,
 }
 
-pub struct Services(Vec<Service>);
 
 impl Output {
     fn new<P: AsRef<Path>>(service_name: String, output_format: OutputFormat, dest: Option<&P>) -> Self {
@@ -53,6 +52,8 @@ impl Output {
         }
     }
 }
+
+pub type Services = Vec<Service>;
 
 impl Service {
     fn generate_url(&self) -> String {
@@ -138,23 +139,21 @@ impl Service {
     }
 }
 
-impl Services {
-    pub fn new<P: AsRef<Path>>(p: P) -> Result<Self, io::Error> {
-        let parsed: toml::Value = toml::from_str(&fs::read_to_string(p)?).unwrap();
-        let mut services = vec![];
+pub fn parse<P: AsRef<Path>>(p: &P) -> Result<Services, io::Error> {
+    let parsed: toml::Value = toml::from_str(&fs::read_to_string(p)?).unwrap();
+    let mut services = vec![];
 
-        for (_, values) in parsed.as_table().unwrap() {
-            let service: Service = toml::from_str(&toml::to_string(values).unwrap()).unwrap();
-            services.push(service);
-        }
-
-        Ok(Self(services))
+    for (_, values) in parsed.as_table().unwrap() {
+        let service: Service = toml::from_str(&toml::to_string(values).unwrap()).unwrap();
+        services.push(service);
     }
 
-    pub fn statistics(self, format: OutputFormat, dest: Option<PathBuf>) {
-        for service in self.0.into_iter() {
-            println!("{}", service.execute(format, dest.as_ref()));
-        }
+    Ok(services)
+}
+
+pub fn run(services: Services, format: OutputFormat, dest: Option<PathBuf>) {
+    for service in services {
+        println!("{}", service.execute(format, dest.as_ref()));
     }
 }
 
