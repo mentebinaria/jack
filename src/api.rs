@@ -1,15 +1,22 @@
 use std::{io::{self, Write}, fs, str::FromStr, collections::HashMap};
 use serde::{Serialize, Deserialize};
+use toml::value::Table as TomlTable;
+
+// Type Aliases
+type OAuth = Option<TomlTable>;
+type Filter = Option<TomlTable>;
+type Params = Option<TomlTable>;
+type Headers = Option<TomlTable>;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Service {
     service_name: String,
     url: String,
     method: String,
-    oauth: Option<toml::value::Table>,
-    filter: Option<toml::value::Table>,
-    params: Option<toml::value::Table>,
-    headers: Option<toml::value::Table>,
+    oauth: OAuth,
+    filter: Filter,
+    params: Params,
+    headers: Headers,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
