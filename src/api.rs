@@ -1,4 +1,9 @@
-use std::{io::{self, Write}, fs, str::FromStr, collections::HashMap};
+use std::{
+    io::{self, Write},
+    fs, str::FromStr,
+    collections::HashMap,
+    path::{Path, PathBuf}
+};
 use serde::{Serialize, Deserialize};
 use toml::value::Table as TomlTable;
 
@@ -22,63 +27,29 @@ pub struct Service {
 #[derive(Serialize, Deserialize, Debug)]
 struct Output {
     service_name: String,
+    output_format: OutputFormat,
+    dest: Option<PathBuf>,
     filters: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(
+    Serialize, Deserialize,
+    Clone, Copy,
+    Debug)]
 pub enum OutputFormat {
     Json,
-}
-
-impl FromStr for OutputFormat {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim().to_lowercase().as_ref() {
-            "json" => Ok(Self::Json),
-            _ => Err("`{s}` is an invalid output format".to_string()),
-        }
-    }
+    Pretty,
 }
 
 pub struct Services(Vec<Service>);
 
 impl Output {
-    fn new(service_name: String) -> Self {
+    fn new<P: AsRef<Path>>(service_name: String, output_format: OutputFormat, dest: Option<&P>) -> Self {
         Self {
             service_name,
+            output_format,
+            dest: dest.map(|dest| dest.as_ref().to_path_buf()),
             filters: HashMap::new(),
-        }
-    }
-
-    fn display<P: AsRef<std::path::Path>>(&self, format: Option<OutputFormat>, dest: Option<P>) {
-        if let Some(format) = format {
-            
-            match format {
-                OutputFormat::Json => {
-                    let content = serde_json::to_string(&self).unwrap();
-
-                    if let Some(dest) = dest {
-                        let dest = dest.as_ref();
-                        if !dest.exists() {
-                            fs::create_dir(dest).unwrap();
-                        }
-
-                        let file_name = dest.join(self.service_name.clone() + ".json");
-                        let mut file = fs::File::create(file_name).unwrap();
-                        file.write_all(content.as_bytes()).unwrap(); 
-                    }
-
-                    println!("{content}")
-
-                },
-            }
-        } else {
-            println!("service_name = {:?}", self.service_name);
-            self.filters.iter().for_each(|(k, v)| {
-                println!("{k} = {v}");
-            });
-            println!();
         }
     }
 }
@@ -111,7 +82,7 @@ impl Service {
         }
     }
 
-    fn execute(self) -> Output {
+    fn execute<P: AsRef<Path>>(self, output_format: OutputFormat, dest: Option<&P>) -> Output {
         let url = self.generate_url();
         let mut client = smolhttp::Client::new(&url).unwrap();
         let mut headers = vec![];
@@ -144,7 +115,7 @@ impl Service {
         };
 
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
-        let mut output = Output::new(self.service_name.clone());
+        let mut output = Output::new(self.service_name.clone(), output_format, dest);
 
         if let Some(filter) = self.filter {
             filter.into_iter().for_each(|(name, value)| {
@@ -168,7 +139,7 @@ impl Service {
 }
 
 impl Services {
-    pub fn new<P: AsRef<std::path::Path>>(p: P) -> Result<Self, io::Error> {
+    pub fn new<P: AsRef<Path>>(p: P) -> Result<Self, io::Error> {
         let parsed: toml::Value = toml::from_str(&fs::read_to_string(p)?).unwrap();
         let mut services = vec![];
 
@@ -180,9 +151,53 @@ impl Services {
         Ok(Self(services))
     }
 
-    pub fn statistics<P: AsRef<std::path::Path>>(self, format: Option<OutputFormat>, dest: Option<&P>) {
+    pub fn statistics(self, format: OutputFormat, dest: Option<PathBuf>) {
         self.0.into_iter().for_each(|service| {
-            service.execute().display(format, dest)
+            println!("{}", service.execute(format, dest.as_ref()));
         });
+    }
+}
+
+// Trait impl's
+
+impl FromStr for OutputFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_ref() {
+            "json" => Ok(Self::Json),
+            _ => Err("`{s}` is an invalid output format".to_string()),
+        }
+    }
+}
+
+impl std::fmt::Display for Output {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.output_format {
+            OutputFormat::Json => {
+                let content = serde_json::to_string(&self).unwrap();
+
+                if let Some(dest) = self.dest.as_ref() {
+                    if !dest.exists() {
+                        fs::create_dir(dest).unwrap();
+                    }
+        
+                    let file_name = dest.join(self.service_name.clone() + ".json");
+                    let mut file = fs::File::create(file_name).unwrap();
+                    file.write_all(content.as_bytes()).unwrap(); 
+                }
+
+                writeln!(f, "{content}")?;
+            },
+            OutputFormat::Pretty => {
+                println!("service_name = {:?}", self.service_name);
+                self.filters.iter().for_each(|(k, v)| {
+                    println!("{k} = {v}");
+                });
+                println!();
+            }
+        }
+
+        Ok(())
     }
 }

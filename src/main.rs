@@ -1,4 +1,4 @@
-use std::{str::FromStr, collections::HashMap};
+use std::{str::FromStr, collections::HashMap, path::PathBuf};
 
 mod api;
 mod oauth2;
@@ -57,10 +57,9 @@ fn main() {
     let services = api::Services::new(config_file.unwrap()).unwrap();
     
     let output_format = opts.get(&Argument::Format)
-        .map(|fmt| api::OutputFormat::from_str(fmt.as_ref().unwrap()).unwrap());
+        .map_or(api::OutputFormat::Pretty, |fmt| api::OutputFormat::from_str(fmt.as_ref().unwrap()).unwrap());
 
-    let dest = opts.get(&Argument::Dest).map(|path| path.as_ref().unwrap());
+    let dest = opts.get(&Argument::Dest).map(|path| path.as_ref().unwrap()).map(PathBuf::from);
     
     services.statistics(output_format, dest);
-
 }
