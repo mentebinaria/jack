@@ -9,30 +9,51 @@ use oauth2::{
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 use oauth2::url::Url;
+use toml::value::Table as TomlTable;
+
+macro_rules! get_map {
+    () => {};
+    ($i:ident[$field:literal], $f:ident) => {
+        {
+            $i.get($field).map(|e| $f::new(e.as_str().unwrap().to_owned()))
+        }
+    };
+    // When return a Result enum
+    ($i:ident[$field:literal]; $f:ident) => {
+        $i.get($field).map(|e| $f::new(e.as_str().unwrap().to_owned()).unwrap())
+    }
+}
 
 #[inline(always)]
 fn cache_token(token: &str) {
     std::fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
 }
 
-pub fn authenticate(oauth: &toml::value::Table) -> String {
+pub fn authenticate(oauth: &TomlTable) -> String {
     if let Ok(token) = std::fs::read_to_string(".oauth_tokens") {
         return token;
     }
     
-    let client_secret = 
-        oauth.get("client_secret").map(|client_id| ClientSecret::new(client_id.as_str().unwrap().to_owned()));
-    let client_id = oauth["client_id"].as_str().unwrap().to_string();
-    let auth_uri = oauth["auth_uri"].as_str().unwrap().to_string();
-    let token_uri = oauth["token_uri"].as_str().unwrap().to_string();
+
+    let (client_secret, client_id,
+        auth_uri, token_uri) = (
+        // oauth.get("client_secret").map(|client_id| ClientSecret::new(client_id.as_str().unwrap().to_owned())),
+        get_map!(oauth["client_secret"], ClientSecret),
+        // oauth.get("client_id").map(|client_id| ClientId::new(client_id.as_str().unwrap().to_owned())).unwrap(),
+        get_map!(oauth["client_id"], ClientId).unwrap(),
+        // oauth["auth_uri"].as_str().unwrap().to_string(),
+        get_map!(oauth["auth_uri"]; AuthUrl).unwrap(),
+        // oauth.get("token_uri").map(|token_uri| TokenUrl::new(token_uri.as_str().unwrap().to_owned()).unwrap())
+        get_map!(oauth["token_uri"]; TokenUrl),
+    );
 
     // Set up the config for the Google OAuth2 process.
     let client = BasicClient::new(
-        ClientId::new(client_id),
+        client_id,
         client_secret,
         // Some(ClientSecret::new(client_secret)),
-        AuthUrl::new(auth_uri).unwrap(),
-        Some(TokenUrl::new(token_uri).unwrap()),
+        auth_uri,
+        token_uri
     )
     // This example will be running its own server at localhost:8080.
     // See below for the server implementation.
