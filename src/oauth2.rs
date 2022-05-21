@@ -6,7 +6,7 @@ use oauth2::reqwest::http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
 };
-use std::io::{BufRead, BufReader, Write};
+use std::{io::{BufRead, BufReader, Write}, error::Error};
 use std::net::TcpListener;
 use oauth2::url::Url;
 use toml::value::Table as TomlTable;
@@ -29,14 +29,28 @@ macro_rules! get_map {
     }
 }
 
-#[inline(always)]
-fn cache_token(token: &str) {
-    std::fs::File::create(".oauth_tokens").unwrap().write_all(token.as_bytes()).unwrap();
+#[derive(Debug, Clone, Copy)]
+pub struct AuthError {}
+
+#[inline]
+fn cache_token<'a>(service_name: &'a str, token: &'a str) -> Result<&'a str, std::io::Error> {
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(".oauth_tokens")
+        .unwrap()
+        .write_all(format!("{}:{}\n", service_name, token).as_bytes())?;
+    Ok(token)
 }
 
-pub fn authenticate(oauth: &TomlTable) -> String {
-    if let Ok(token) = std::fs::read_to_string(".oauth_tokens") {
-        return token;
+pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, AuthError> {
+    if let Ok(tokens) = std::fs::read_to_string(".oauth_tokens") {
+        let keys = tokens.split(':').step_by(2);
+        let values = tokens.split(':').skip(1).step_by(2);
+        let map = keys.zip(values).collect::<std::collections::HashMap::<_, _>>();
+        if let Ok(token) = map.get(service_name).map(|e| e.to_string()).ok_or(AuthError {}) {
+            return Ok(token);
+        }
     }
     
 
@@ -136,11 +150,16 @@ pub fn authenticate(oauth: &TomlTable) -> String {
                 .request(http_client).unwrap();
 
             let token = token_response.access_token().secret().to_string();
-            cache_token(&token);
-            return token;
+            return Ok(cache_token(service_name, &token)?.to_string());
 
             // The server will terminate itself after revoking the token.
         }
     }
     panic!("Something failed")
+}
+
+impl<E: Error + 'static> From<E> for AuthError {
+    fn from(_: E) -> Self {
+        Self {}
+    }
 }
