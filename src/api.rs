@@ -165,6 +165,7 @@ impl FromStr for OutputFormat {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_lowercase().as_ref() {
             "json" => Ok(Self::Json),
+            "pretty" => Ok(Self::Pretty),
             _ => Err("`{s}` is an invalid output format".to_string()),
         }
     }
