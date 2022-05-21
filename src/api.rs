@@ -6,6 +6,7 @@ use std::{
 };
 use serde::{Serialize, Deserialize};
 use toml::value::Table as TomlTable;
+use serde_json::Value as JsonValue;
 
 // Type Aliases
 type OAuth = Option<TomlTable>;
@@ -32,10 +33,7 @@ struct Output {
     filters: HashMap<String, String>,
 }
 
-#[derive(
-    Serialize, Deserialize,
-    Clone, Copy,
-    Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum OutputFormat {
     Json,
     Pretty,
@@ -89,13 +87,9 @@ impl Service {
         let mut headers = vec![];
         let token = self.authenticate();
 
-        println!("service_name = {:?}", self.service_name);
-
         match (self.headers, token) {
-            (Some(h),  _) => {
-                h.into_iter().for_each(|(k, v)| {
-                    headers.push((k, v.as_str().unwrap().to_owned()))
-                });
+            (Some(header),  _) => {
+                headers.extend(header.into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_owned())));
             },
             (_, Some(token)) => {
                 headers.push(("Authorization".to_owned(), format!("Bearer {token}")));
@@ -115,7 +109,7 @@ impl Service {
             _ => panic!("No support for {:?} requests", self.method),
         };
 
-        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let json: JsonValue = serde_json::from_str(&content).unwrap();
         let mut output = Output::new(self.service_name.clone(), output_format, dest);
 
         if let Some(filter) = self.filter {
