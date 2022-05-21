@@ -42,22 +42,16 @@ pub fn authenticate(oauth: &TomlTable) -> String {
 
     let (client_secret, client_id,
         auth_uri, token_uri, scope) = (
-        // oauth.get("client_secret").map(|client_id| ClientSecret::new(client_id.as_str().unwrap().to_owned())),
         get_map!(oauth["client_secret"], ClientSecret),
-        // oauth.get("client_id").map(|client_id| ClientId::new(client_id.as_str().unwrap().to_owned())).unwrap(),
         get_map!(oauth["client_id"], ClientId).unwrap(),
-        // oauth["auth_uri"].as_str().unwrap().to_string(),
         get_map!(oauth["auth_uri"]; AuthUrl).unwrap(),
-        // oauth.get("token_uri").map(|token_uri| TokenUrl::new(token_uri.as_str().unwrap().to_owned()).unwrap())
         get_map!(oauth["token_uri"]; TokenUrl),
-        get_map!(oauth["scope"]),
-    );
+        get_map!(oauth["scope"]));
 
     // Set up the config for the Google OAuth2 process.
     let client = BasicClient::new(
         client_id,
         client_secret,
-        // Some(ClientSecret::new(client_secret)),
         auth_uri,
         token_uri
     )
