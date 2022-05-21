@@ -18,9 +18,14 @@ macro_rules! get_map {
             $i.get($field).map(|e| $f::new(e.as_str().unwrap().to_owned()))
         }
     };
+
     // When return a Result enum
     ($i:ident[$field:literal]; $f:ident) => {
         $i.get($field).map(|e| $f::new(e.as_str().unwrap().to_owned()).unwrap())
+    };
+
+    ($i:ident[$field:literal]) => {
+        $i.get($field).map(|e| e.as_str().unwrap().to_owned()).unwrap()
     }
 }
 
@@ -36,7 +41,7 @@ pub fn authenticate(oauth: &TomlTable) -> String {
     
 
     let (client_secret, client_id,
-        auth_uri, token_uri) = (
+        auth_uri, token_uri, scope) = (
         // oauth.get("client_secret").map(|client_id| ClientSecret::new(client_id.as_str().unwrap().to_owned())),
         get_map!(oauth["client_secret"], ClientSecret),
         // oauth.get("client_id").map(|client_id| ClientId::new(client_id.as_str().unwrap().to_owned())).unwrap(),
@@ -45,6 +50,7 @@ pub fn authenticate(oauth: &TomlTable) -> String {
         get_map!(oauth["auth_uri"]; AuthUrl).unwrap(),
         // oauth.get("token_uri").map(|token_uri| TokenUrl::new(token_uri.as_str().unwrap().to_owned()).unwrap())
         get_map!(oauth["token_uri"]; TokenUrl),
+        get_map!(oauth["scope"]),
     );
 
     // Set up the config for the Google OAuth2 process.
@@ -70,7 +76,7 @@ pub fn authenticate(oauth: &TomlTable) -> String {
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the "calendar" features and the user's profile.
         .add_scope(Scope::new(
-            "https://www.googleapis.com/auth/yt-analytics.readonly".to_string(),
+            scope,
         ))
         .set_pkce_challenge(pkce_code_challenge)
         .url();
