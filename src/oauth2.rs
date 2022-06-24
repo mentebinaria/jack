@@ -49,7 +49,7 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
         let values = tokens.split(':').skip(1).step_by(2);
         let map = keys.zip(values).collect::<std::collections::HashMap::<_, _>>();
         if let Ok(token) = map.get(service_name).map(|e| e.to_string()).ok_or(AuthError {}) {
-            return Ok(token);
+            return Ok(token.replace('\n', ""));
         }
     }
     
