@@ -188,11 +188,11 @@ impl std::fmt::Display for Output {
                 writeln!(f, "{content}")?;
             },
             OutputFormat::Pretty => {
-                println!("service_name = {:?}", self.service_name);
+                writeln!(f, "service_name = {:?}", self.service_name)?;
                 for (k, v) in self.filters.iter() {
-                    println!("{k} = {v}");
+                    writeln!(f, "{k} = {v}")?;
                 }
-                println!();
+                writeln!(f)?;
             }
         }
 
