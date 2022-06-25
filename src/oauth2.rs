@@ -6,10 +6,13 @@ use oauth2::reqwest::http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
 };
-use std::{io::{BufRead, BufReader, Write}, error::Error};
+use std::{io::{BufRead, BufReader, Write, Read}, error::Error, collections::HashMap};
 use std::net::TcpListener;
 use oauth2::url::Url;
 use toml::value::Table as TomlTable;
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct CacheToken(HashMap<String, String>);
 
 macro_rules! get_map {
     () => {};
@@ -32,28 +35,54 @@ macro_rules! get_map {
 #[derive(Debug, Clone, Copy)]
 pub struct AuthError {}
 
-#[inline]
-fn cache_token<'a>(service_name: &'a str, token: &'a str) -> Result<&'a str, std::io::Error> {
-    std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(".oauth_tokens")
-        .unwrap()
-        .write_all(format!("{}:{}\n", service_name, token).as_bytes())?;
-    Ok(token)
+impl CacheToken {
+    const FILE: &'static str = ".tokens";
+
+    fn new() -> Result<Self, std::io::Error> {
+        let mut buf = String::new();
+        std::fs::File::options()
+            .read(true)
+            .create(true)
+            .append(true)
+            .open(Self::FILE).unwrap().read_to_string(&mut buf).unwrap();
+
+        Ok(
+            if buf.is_empty() {
+                Self(HashMap::new())
+            } else {
+                serde_json::from_str::<CacheToken>(&buf).unwrap()
+            }
+        )
+    }
+
+    fn cache<'a>(service_name: &'a str, token: &'a str) -> Result<&'a str, std::io::Error> {
+        use std::fs::File;
+        
+        let mut cache_tokens = CacheToken::new()?;
+        cache_tokens.insert(service_name, token);
+        File::options()
+            .truncate(true)
+            .write(true)
+            .open(Self::FILE)?
+            .write_all(serde_json::to_string(&cache_tokens)?.as_bytes())?;
+        
+        Ok(token)
+    }
+
+    fn lookup<'a>(&'a self, service_name: &'a str) -> Option<&'a String> {
+        self.0.get(service_name)
+    }
+    
+    fn insert(&mut self, service_name: &str, token: &str) {
+        self.0.entry(service_name.to_string()).or_insert(token.to_string());
+    }
 }
 
 pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, AuthError> {
-    if let Ok(tokens) = std::fs::read_to_string(".oauth_tokens") {
-        let keys = tokens.split(':').step_by(2);
-        let values = tokens.split(':').skip(1).step_by(2);
-        let map = keys.zip(values).collect::<std::collections::HashMap::<_, _>>();
-        if let Ok(token) = map.get(service_name).map(|e| e.to_string()).ok_or(AuthError {}) {
-            return Ok(token.replace('\n', ""));
-        }
+    if let Some(token) = CacheToken::new().unwrap().lookup(service_name) {
+        return Ok(token.clone());
     }
-    
-
+                
     let (client_secret, client_id,
         auth_uri, token_uri, scope) = (
         get_map!(oauth["client_secret"], ClientSecret),
@@ -150,7 +179,7 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
                 .request(http_client).unwrap();
 
             let token = token_response.access_token().secret().to_string();
-            return Ok(cache_token(service_name, &token)?.to_string());
+            return Ok(CacheToken::cache(service_name, &token)?.to_string());
 
             // The server will terminate itself after revoking the token.
         }
