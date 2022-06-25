@@ -44,13 +44,13 @@ impl CacheToken {
             .read(true)
             .create(true)
             .append(true)
-            .open(Self::FILE).unwrap().read_to_string(&mut buf).unwrap();
+            .open(Self::FILE)?.read_to_string(&mut buf)?;
 
         Ok(
             if buf.is_empty() {
                 Self(HashMap::new())
             } else {
-                serde_json::from_str::<CacheToken>(&buf).unwrap()
+                serde_json::from_str::<CacheToken>(&buf)?
             }
         )
     }
@@ -79,10 +79,10 @@ impl CacheToken {
 }
 
 pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, AuthError> {
-    if let Some(token) = CacheToken::new().unwrap().lookup(service_name) {
+    if let Some(token) = CacheToken::new()?.lookup(service_name) {
         return Ok(token.clone());
     }
-                
+
     let (client_secret, client_id,
         auth_uri, token_uri, scope) = (
         get_map!(oauth["client_secret"], ClientSecret),
