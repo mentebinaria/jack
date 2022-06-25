@@ -37,6 +37,7 @@ struct Output {
 pub enum OutputFormat {
     Json,
     Pretty,
+    PrettyJson,
 }
 
 
@@ -164,6 +165,7 @@ impl FromStr for OutputFormat {
         match s.trim().to_lowercase().as_ref() {
             "json" => Ok(Self::Json),
             "pretty" => Ok(Self::Pretty),
+            "prettyjson" | "pjson" => Ok(Self::PrettyJson),
             _ => Err("`{s}` is an invalid output format".to_string()),
         }
     }
@@ -193,6 +195,21 @@ impl std::fmt::Display for Output {
                     writeln!(f, "{k} = {v}")?;
                 }
                 writeln!(f)?;
+            },
+            OutputFormat::PrettyJson => {
+                let content = serde_json::to_string_pretty(&self).unwrap();
+
+                if let Some(dest) = self.dest.as_ref() {
+                    if !dest.exists() {
+                        fs::create_dir(dest).unwrap();
+                    }
+        
+                    let file_name = dest.join(self.service_name.clone() + ".json");
+                    let mut file = fs::File::create(file_name).unwrap();
+                    file.write_all(content.as_bytes()).unwrap(); 
+                }
+
+                writeln!(f, "{content}")?;
             }
         }
 
