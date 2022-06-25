@@ -117,7 +117,7 @@ impl Service {
             for (name, value) in filter {
                 output.filters.insert(name.clone(), json.pointer(value.as_str().unwrap())
                 .unwrap_or_else(|| {
-                    panic!("({name:?}, ({value:?})) trigged an error");
+                    panic!("({name:?}, ({value:?})) trigged an error\nFull response: {content:?}");
                 }).to_string());
             }
         } else {
