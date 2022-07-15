@@ -91,6 +91,8 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
         get_map!(oauth["token_uri"]; TokenUrl),
         get_map!(oauth["scope"]));
 
+    let id = client_id.as_str().to_owned();
+
     // Set up the config for the Google OAuth2 process.
     let client = BasicClient::new(
         client_id,
@@ -176,7 +178,11 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
             let token_response = client
                 .exchange_code(code)
                 .set_pkce_verifier(pkce_code_verifier)
+                .add_extra_param("client_id", id)
                 .request(http_client).unwrap();
+                // .request(dbg_http_client).unwrap();
+            
+            // panic!("Token = {token_response:?}");
 
             let token = token_response.access_token().secret().to_string();
             return Ok(CacheToken::cache(service_name, &token)?.to_string());
