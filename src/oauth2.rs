@@ -1,6 +1,6 @@
 // https://github.com/ramosbugs/oauth2-rs/blob/main/examples/google.rs
 
-use oauth2::{basic::BasicClient, TokenResponse, ClientSecret};
+use oauth2::{basic::BasicClient, TokenResponse, ClientSecret, RequestTokenError};
 // Alternatively, this can be oauth2::curl::http_client or a custom.
 use oauth2::reqwest::http_client;
 use oauth2::{
@@ -26,7 +26,7 @@ macro_rules! get_map {
     ($i:ident[$field:literal]; $f:ident) => {
         $i.get($field).map(|e| $f::new(e.as_str().unwrap().to_owned()).unwrap())
     };
-
+    
     ($i:ident[$field:literal]) => {
         $i.get($field).map(|e| e.as_str().unwrap().to_owned()).unwrap()
     }
@@ -185,11 +185,25 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
                 .exchange_code(code)
                 .set_pkce_verifier(pkce_code_verifier)
                 .add_extra_param("client_id", id)
-                .request(http_client).unwrap();
+                .request(http_client);
+
+            let token = match token_response {
+                Ok(token) => token.access_token().secret().to_string(),
+                Err(e) => match e {
+                    RequestTokenError::Parse(_, token) => {
+                        #[derive(Debug, serde::Serialize, serde::Deserialize)]
+                        struct TheToken {
+                            access_token: String
+                        }
+
+                        serde_json::from_slice::<TheToken>(&token).unwrap().access_token
+                    }
+                    _ => panic!("a")
+                }
+            };
             
             // panic!("Token = {token_response:?}");
 
-            let token = token_response.access_token().secret().to_string();
             return Ok(CacheToken::cache(service_name, &token)?.to_string());
 
             // The server will terminate itself after revoking the token.
