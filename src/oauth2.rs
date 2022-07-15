@@ -74,7 +74,7 @@ impl CacheToken {
     }
     
     fn insert(&mut self, service_name: &str, token: &str) {
-        self.0.entry(service_name.to_string()).or_insert(token.to_string());
+        self.0.entry(service_name.to_string()).or_insert_with(|| token.to_string());
     }
 }
 
@@ -84,12 +84,14 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
     }
 
     let (client_secret, client_id,
-        auth_uri, token_uri, scope) = (
+        auth_uri, token_uri, scope,
+        redirect_uri) = (
         get_map!(oauth["client_secret"], ClientSecret),
         get_map!(oauth["client_id"], ClientId).unwrap(),
         get_map!(oauth["auth_uri"]; AuthUrl).unwrap(),
         get_map!(oauth["token_uri"]; TokenUrl),
-        get_map!(oauth["scope"]));
+        get_map!(oauth["scope"]),
+        get_map!(oauth["redirect_uri"]; RedirectUrl));
 
     let id = client_id.as_str().to_owned();
 
@@ -103,7 +105,11 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
     // This example will be running its own server at localhost:8080.
     // See below for the server implementation.
     .set_redirect_uri(
-        RedirectUrl::new("http://localhost:8080".to_string()).expect("Invalid redirect URL"),
+        if let Some(redirect_uri) = redirect_uri {
+            redirect_uri
+        } else {
+            RedirectUrl::new("http://localhost:8080/".to_string()).expect("Invalid redirect URL")
+        }
     );
 
     // Google supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
@@ -180,7 +186,6 @@ pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, Aut
                 .set_pkce_verifier(pkce_code_verifier)
                 .add_extra_param("client_id", id)
                 .request(http_client).unwrap();
-                // .request(dbg_http_client).unwrap();
             
             // panic!("Token = {token_response:?}");
 
