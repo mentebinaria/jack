@@ -1,6 +1,7 @@
 use std::{str::FromStr, collections::HashMap, path::PathBuf};
 
 mod api;
+#[cfg(feature = "oauth2")]
 mod oauth2;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]

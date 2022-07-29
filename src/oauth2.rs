@@ -78,7 +78,13 @@ impl CacheToken {
     }
 }
 
-pub fn authenticate(oauth: &TomlTable, service_name: &str) -> Result<String, AuthError> {
+pub fn authenticate(oauth: Option<&TomlTable>, service_name: &str) -> Result<String, AuthError> {
+    if oauth.is_none() {
+        return Err(AuthError {});
+    }
+
+    let oauth = oauth.unwrap();
+
     if let Some(token) = CacheToken::new()?.lookup(service_name) {
         return Ok(token.clone());
     }

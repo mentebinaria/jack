@@ -130,11 +130,11 @@ impl Service {
     }
 
     fn authenticate(&self) -> Option<String> {
-        if let Some(oauth) = &self.oauth {
-            super::oauth2::authenticate(oauth, &self.service_name).ok()
-        } else {
-            None
-        }
+        #[cfg(feature = "oauth2")]
+        return super::oauth2::authenticate(self.oauth.as_ref(), &self.service_name).ok();
+
+        #[cfg(not(feature = "oauth2"))]
+        None
     }
 }
 
